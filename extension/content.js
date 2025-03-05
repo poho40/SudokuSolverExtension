@@ -18,7 +18,8 @@ function getCanvasData() {
                 if (!numpad.hasListener) {
                     // console.log("adding numpad listner")
                     numpad.addEventListener("mousedown", (e) => {
-                        const value = e.target.getAttribute("data-value"); // Get the value from the data-value attribute
+                        // console.log(e.target)
+                        // const value = e.target.getAttribute("data-value"); // Get the value from the data-value attribute
                         // console.log("mouseup event received on: ", value); 
                         
                     });
@@ -27,7 +28,7 @@ function getCanvasData() {
             }
         }
         chrome.runtime.sendMessage({ action: "sendCanvasData", imageData: imageData}, response => {
-            // console.log("Response from background:", response);
+            console.log("Response from background:", response);
         });
     }
 }
@@ -37,11 +38,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         // console.log("Received Sudoku answer data:", answerData);
 
         // Process the answerData if necessary or perform further actions
-        runSolve = true
+        runSolve = false
         for (let row = 0; row < 9; row++) {
             for (let col = 0; col < 9; col++) {
-                if (answerData[row][col] == '.') {
-                    runSolve = false
+                if (answerData[row][col] != '.') {
+                    runSolve = true
                 }
             }
         }
@@ -61,6 +62,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 async function solveSudoku(sudoku_board) {
     // console.log("running solve")
+    solveS(sudoku_board, 0, 0)
     for (let row = 0; row < 9; row++) {
         for (let col = 0; col < 9; col++) {
             // Get the canvas element
@@ -114,8 +116,153 @@ async function solveSudoku(sudoku_board) {
     }
 }
 
+function getData() {
+    let grid = [];
+    for (let row = 0; row < 9; row++) {
+        let rowData = [];
+        for (let col = 0; col < 9; col++) {
+            let td = document.querySelector("#c" + col + row); // Select td
+            if (td) {
+                let input = td.querySelector("input"); // Select input inside td
+                if (input && input.hasAttribute("readonly")) {
+                    rowData.push(input.value); // Store readonly value
+                } else {
+                    rowData.push('.'); // Store '.' if no readonly value
+                }
+            } else {
+                rowData.push('.'); // Handle missing td (edge case)
+            }
+        }
+        grid.push(rowData);
+    }
+    solveS(grid, 0, 0)
+    for (let row = 0; row < 9; row++) {
+        for (let col = 0; col < 9; col++) {
+            let td = document.querySelector("#c" + col + row); // Select td
+            if (td) {
+                let input = td.querySelector("input"); // Select input inside td
+                if(input) {
+                    input.value = grid[row][col]
+                }
+            }
+        }
+    }
+    
+}
+
+function getNYData() {
+    const numpadDiv = document.querySelector('.su-keyboard__container');
+    // console.log(numpadDiv)
+    let grid = [];
+    for (let row = 0; row < 9; row++) {
+        let rowData = [];
+        for (let col = 0; col < 9; col++) {
+            let cell = document.querySelector(`[data-testid="sudoku-cell-${row*9+col}"]`); // Select td
+            // console.log(cell)
+            if (cell) {
+                let svg = cell.querySelector('[data-number]');
+                if (svg) {
+                    rowData.push(svg.getAttribute('data-number'));
+                }
+                else {
+                    rowData.push('.'); // Store '.' if no readonly value
+                }
+            } else {
+                rowData.push('.'); // Handle missing td (edge case)
+            }
+        }
+        grid.push(rowData);
+    }
+    // console.log(grid)
+    solveS(grid, 0, 0)
+    console.log(grid)
+    for (let row = 0; row < 9; row++) {
+        for (let col = 0; col < 9; col++) {
+            let cell = document.querySelector(`[data-testid="sudoku-cell-${row*9+col}"]`);// Select td
+            if (cell) {
+                cell.classList.remove('selected');
+                cell.classList.remove('guessed');
+            }
+        }
+    }
+    for (let row = 0; row < 9; row++) {
+        for (let col = 0; col < 9; col++) {
+            let cell = document.querySelector(`[data-testid="sudoku-cell-${row*9+col}"]`);// Select td
+            if (cell && !cell.classList.contains('prefilled')) {
+
+                cell.click()
+
+                let answer = grid[row][col]
+                numpadDiv.children[answer - 1].click()
+
+                console.log(cell.classList, row, col)
+            }
+        }
+    }
+}
 
 // Main function
 (async function () {
-    let imageData = getCanvasData();
+    if (window.location.href.includes("sudoku.com")) {
+        let imageData = getCanvasData();
+    }
+    if (window.location.href.includes("west.websudoku.com")) {
+        getData();
+    }
+    if (window.location.href.includes("www.nytimes.com/puzzles/sudoku")) {
+        getNYData();
+    }
 })();
+
+
+function solveS(board, i = 0, j = 0) {
+    if (i === board.length) {
+        return true;
+    }
+    if (j === board[i].length) {
+        return solveS(board, i + 1, 0);
+    }
+    
+    if (board[i][j] !== '.') {
+        return solveS(board, i, j + 1);
+    }
+    
+    for (let char = 1; char <= 9; char++) {
+        let val = char.toString();
+        if (helper(board, i, j, val)) {
+            board[i][j] = val;
+            if (solveS(board, i, j + 1)) {
+                return true;
+            }
+            board[i][j] = '.';
+        }
+    }
+    return false;
+}
+
+function helper(board, r, c, val) {
+    for (let i = 0; i < 9; i++) {
+        if (board[i][c] === val) {
+            return false;
+        }
+    }
+    
+    for (let i = 0; i < 9; i++) {
+        if (board[r][i] === val) {
+            return false;
+        }
+    }
+    
+    let newI = Math.floor(r / 3) * 3;
+    let newJ = Math.floor(c / 3) * 3;
+    
+    for (let i = newI; i < newI + 3; i++) {
+        for (let j = newJ; j < newJ + 3; j++) {
+            if (!(i === r && j === c) && board[i][j] === val) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+

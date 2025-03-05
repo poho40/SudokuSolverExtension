@@ -2,7 +2,7 @@ async function sendImageToFlask(imageData) {
     const url = "https://rohitsar-sudokuextension.hf.space/process-image"; // Flask endpoint
 
     try {
-        console.log(url)
+        // console.log(url)
         let response = await fetch(url, {
             method: "POST",
             headers: {
