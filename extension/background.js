@@ -1,5 +1,5 @@
 async function sendImageToFlask(imageData) {
-    const url = "https://rohitsar-sudokuextension.hf.space/process-image"; // Flask endpoint
+    const url = "http://127.0.0.1:8000/process-image"; // Flask endpoint
 
     try {
         // console.log(url)
@@ -14,11 +14,11 @@ async function sendImageToFlask(imageData) {
         let result = await response.json();
         const answerData = JSON.parse(result.answer); // Parse the string back into an array
         // Iterate over the 2D array to log each number with its index
-        answerData.forEach((row, rowIndex) => {
-            row.forEach((number, colIndex) => {
-                // console.log(`Number: ${number} at position [${rowIndex}, ${colIndex}]`);
-            });
-        });
+        // answerData.forEach((row, rowIndex) => {
+        //     row.forEach((number, colIndex) => {
+        //         // console.log(`Number: ${number} at position [${rowIndex}, ${colIndex}]`);
+        //     });
+        // });
         chrome.tabs.query({active: true, currentWindow: true}, function(tabs){
             chrome.tabs.sendMessage(tabs[0].id, {action: "sudoku", answerData: answerData});  
         });

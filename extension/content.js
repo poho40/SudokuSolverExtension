@@ -111,7 +111,7 @@ async function solveSudoku(sudoku_board) {
 
 
             // Wait for a short time to simulate human interaction
-            await new Promise(resolve => setTimeout(resolve, 500)); // 0.5 second delay
+            // await new Promise(resolve => setTimeout(resolve, 500)); // 0.5 second delay
         }
     }
 }
@@ -175,7 +175,7 @@ function getNYData() {
     }
     // console.log(grid)
     solveS(grid, 0, 0)
-    console.log(grid)
+    // console.log(grid)
     for (let row = 0; row < 9; row++) {
         for (let col = 0; col < 9; col++) {
             let cell = document.querySelector(`[data-testid="sudoku-cell-${row*9+col}"]`);// Select td
@@ -201,6 +201,56 @@ function getNYData() {
     }
 }
 
+async function getTodayData() {
+    let grid = [];
+    // console.log("started")
+    for (let row = 0; row < 9; row++) {
+        let rowData = [];
+        for (let col = 0; col < 9; col++) {
+            let cell = document.querySelector(`[data-id="${row+1}-${col+1}"]`); // Select td
+            // console.log(cell)
+            // console.log(cell)
+            if (cell) {
+                let span = cell.children[0];
+                if (span) {
+                    if (span.textContent == '') {
+                        rowData.push('.');
+                    }
+                    else {
+                        rowData.push(span.textContent);
+                    }
+                }
+                else {
+                    rowData.push('.'); // Store '.' if no readonly value
+                }
+            } else {
+                rowData.push('.'); // Handle missing td (edge case)
+            }
+        }
+        grid.push(rowData);
+    }
+    // console.log(grid)
+    solveS(grid, 0, 0)
+    console.log(grid)
+    let numpad = document.querySelector('.class-7b-jXCw')
+    for (let row = 0; row < 9; row++) {
+        for (let col = 0; col < 9; col++) {
+            let cell = document.querySelector(`[data-id="${row+1}-${col+1}"]`);
+            // console.log(cell)
+            if (cell && cell.children[0].textContent == '') {
+                console.log(row, col)
+                cell.click()
+                await new Promise(resolve => setTimeout(resolve, 1)); 
+                let answer = grid[row][col]
+                console.log(numpad.children[answer - 1])
+                numpad.children[answer - 1].children[0].click()
+                await new Promise(resolve => setTimeout(resolve, 1)); 
+                // console.log(cell.classList, row, col)
+            }
+        }
+    }
+}
+
 // Main function
 (async function () {
     if (window.location.href.includes("sudoku.com")) {
@@ -211,6 +261,9 @@ function getNYData() {
     }
     if (window.location.href.includes("www.nytimes.com/puzzles/sudoku")) {
         getNYData();
+    }
+    if (window.location.href.includes("puzzles.usatoday.com/sudoku/game")) {
+        getTodayData();
     }
 })();
 
