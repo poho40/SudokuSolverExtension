@@ -36,7 +36,7 @@ def process(pixels):
 
     # print("hello")
     # Save or display the processed image to check
-    cv2.imwrite("black_digits.png", binary)
+    # cv2.imwrite("black_digits.png", binary)
 
     # 2. Identify the cell boundaries (assuming each cell is of equal size)
     cell_width = binary.shape[1] // 9 

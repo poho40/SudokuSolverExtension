@@ -1,19 +1,3 @@
-// async function loadTesseract() {
-//     return new Promise((resolve, reject) => {
-//         const script = document.createElement("script");
-//         script.src = chrome.runtime.getURL("scripts/tesseract.min.js");
-//         script.onload = () => {
-//             console.log("Tesseract script loaded successfully!");
-//             resolve();
-//         };
-//         script.onerror = (err) => {
-//             console.error("Failed to load Tesseract script:", err);
-//             reject(err);
-//         };
-//         document.head.appendChild(script);
-//     });
-// }
-
 function getCanvasData() {
     let gameTable = document.querySelector('.game');
     if (gameTable) {
@@ -26,15 +10,16 @@ function getCanvasData() {
             // Add event listener for the click event (on canvas)
             if (!canvas.hasListener) { 
                 canvas.addEventListener("mousedown", (e) => {
-                    console.log('Canvas clicked at:', e.clientX, e.clientY);
+                    // console.log('Canvas clicked at:', e.clientX, e.clientY);
                 });
                 canvas.hasListener = true; // Custom flag to prevent re-adding listeners
             }
             for (let numpad of numpadDiv.children) {
                 if (!numpad.hasListener) {
+                    // console.log("adding numpad listner")
                     numpad.addEventListener("mousedown", (e) => {
                         const value = e.target.getAttribute("data-value"); // Get the value from the data-value attribute
-                        console.log("mouseup event received on: ", value); 
+                        // console.log("mouseup event received on: ", value); 
                         
                     });
                     numpad.hasListener = true
@@ -63,15 +48,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         if (runSolve) {
             solveSudoku(answerData)
         }
+        else {
+            getCanvasData();
+        }
         // Send a response back to content.js
         sendResponse({ status: "success", message: "Answer data received successfully!" });
+        chrome.runtime.onMessage.removeListener(handleMessage);
     }
     return true
 });
 
 
 async function solveSudoku(sudoku_board) {
-    console.log("running solve")
+    // console.log("running solve")
     for (let row = 0; row < 9; row++) {
         for (let col = 0; col < 9; col++) {
             // Get the canvas element
@@ -114,7 +103,7 @@ async function solveSudoku(sudoku_board) {
                     cancelable: true,
                     view: window,
                 });
-
+                // console.log("sent: " + mouseUpEvent);
                 numberButton.dispatchEvent(mouseUpEvent);
             }
 
