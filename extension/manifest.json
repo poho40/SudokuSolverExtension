@@ -1,0 +1,23 @@
+{
+    "manifest_version": 3,
+    "name": "Sudoku Solver",
+    "version": "1.0",
+    "background": {
+      "service_worker": "background.js"
+    },
+    "host_permissions": [
+      "http://*/*",
+      "https://*/*"
+    ],
+    "permissions": ["storage", "activeTab", "scripting", "downloads"],
+    "content_scripts": [
+      {
+        "matches": ["<all_urls>"],
+        "js": ["content.js"]
+      }
+    ],
+    "action": {
+        "default_popup": "popup.html"
+    }
+  }
+  
