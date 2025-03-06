@@ -1,49 +1,104 @@
-document.getElementById('solve').addEventListener('click', function () {
+
+document.addEventListener('DOMContentLoaded', function () {
+    // Get the current active tab
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-        chrome.tabs.sendMessage(tabs[0].id, { action: 'solveSudoku' });
-    });
-});
+        // Check if the URL contains "sudoku.com"
+        if (tabs[0].url.includes("https://sudoku.com/") || tabs[0].url.includes("https://sudoku.game/") || tabs[0].url.includes("https://west.websudoku.com/")|| tabs[0].url.includes("www.nytimes.com/puzzles/sudoku") || tabs[0].url.includes("puzzles.usatoday.com/sudoku/game")) {
+            // Create the Solve Sudoku button
+            const button = document.createElement('button');
+            button.id = 'solve';
+            button.textContent = 'Solve Sudoku';
+            // Append the button to the popup
+            document.body.appendChild(button);
 
-document.getElementById('manualSolve').addEventListener('click', function () {
-    let sudokuGrid = [];
-    const cells = document.querySelectorAll('.sudoku-board input');
+            // Button functionality
+            button.addEventListener('click', function () {
+                chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+                    chrome.tabs.sendMessage(tabs[0].id, { action: 'solveSudoku' });
+                });
+            });
+            if (tabs[0].url.includes("https://sudoku.com/") || tabs[0].url.includes("https://sudoku.game/")) {
+                const span = document.createElement('span');
+                span.textContent = 'Server Needed';
+                span.style.color = 'red';
+                document.body.appendChild(span);
+            }
+        }
+        else {
+            const sudokuBoard = document.createElement('div');
+            sudokuBoard.className = 'sudoku-board';
 
-    cells.forEach((cell, index) => {
-        sudokuGrid.push(cell.value ? cell.value :'.'); // Store the value, default to 0 if empty
-    });
-    answers = to2DArray(sudokuGrid)
-    solveS(answers, 0, 0)
-    cells.forEach((cell, index) => {
-        row = Math.floor(index / 9)
-        col = index % 9
-        cell.value = answers[row][col] 
-    });
-    chrome.storage.local.set({ sudokuInputs: answers }, () => {
+            // Create 9x9 grid of input cells
+            for (let i = 0; i < 81; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'sudoku-cell';
+                const input = document.createElement('input');
+                input.type = 'number';
+                input.min = 1;
+                input.max = 9;
+                input.maxLength = 1;
+                cell.appendChild(input);
+                sudokuBoard.appendChild(cell);
+            }
 
-    });
-});
+            chrome.storage.local.get('sudokuInputs', (data) => {
+                if (data.sudokuInputs) {
+                    Array.from(sudokuBoard.children).forEach((cell, index) => {
+                        row = Math.floor(index / 9)
+                        col = index % 9
+                        console.log(row,col, cell)
+                        let input = cell.querySelector('input');
+                        if (input) {
+                            input.value = data.sudokuInputs[row][col] || '';
+                        }
+                    });
+                }
+            });
 
-chrome.storage.local.get('sudokuInputs', (data) => {
-    if (data.sudokuInputs) {
-        // Prefill the input fields with saved values
-        const cells = document.querySelectorAll('.sudoku-board input');
-        cells.forEach((cell, index) => {
-            row = Math.floor(index / 9)
-            col = index % 9
-            console.log(row,col)
-            cell.value = data.sudokuInputs[row][col]  || ''
-        });
-    }
-});
+            // Create the Solve Sudoku button
+            const solveButton = document.createElement('button');
+            solveButton.id = 'solve';
+            solveButton.textContent = 'Solve Sudoku';
 
-document.getElementById('clearSolve').addEventListener('click', function () {
-    const cells = document.querySelectorAll('.sudoku-board input');
+            // Create the Clear Sudoku button
+            const clearButton = document.createElement('button');
+            clearButton.id = 'clearSolve';
+            clearButton.textContent = 'Clear Sudoku';
 
-    cells.forEach((cell, index) => {
-       cell.value = ''; // Store the value, default to 0 if empty
-    });
-    chrome.storage.local.remove('sudokuInputs', () => {
+            // Append all elements to the popup
+            document.body.appendChild(sudokuBoard);
+            document.body.appendChild(solveButton);
+            document.body.appendChild(clearButton);
+            clearButton.addEventListener('click', function () {
+                const cells = document.querySelectorAll('.sudoku-board input');
+            
+                cells.forEach((cell, index) => {
+                cell.value = ''; // Store the value, default to 0 if empty
+                });
+                chrome.storage.local.remove('sudokuInputs', () => {
+            
+                });
+            });
+            solveButton.addEventListener('click', function () {
+                let sudokuGrid = [];
+                const cells = document.querySelectorAll('.sudoku-board input');
 
+                cells.forEach((cell, index) => {
+                    sudokuGrid.push(cell.value ? cell.value :'.'); // Store the value, default to 0 if empty
+                });
+                answers = to2DArray(sudokuGrid)
+                solveS(answers, 0, 0)
+                cells.forEach((cell, index) => {
+                    row = Math.floor(index / 9)
+                    col = index % 9
+                    cell.value = answers[row][col] 
+                });
+                chrome.storage.local.set({ sudokuInputs: answers }, () => {
+
+                });
+            });
+
+        }
     });
 });
 

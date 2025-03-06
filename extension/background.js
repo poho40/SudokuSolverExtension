@@ -29,7 +29,4 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendImageToFlask(message.imageData, message.height, message.width);
         sendResponse({ status: "Image sent to server" });
     }
-    else if (message.action === "manualData") {
-        
-    }
 });

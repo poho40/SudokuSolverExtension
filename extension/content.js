@@ -82,7 +82,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             };
             window.location.href.includes("sudoku.com") ?  solveSudokuGame(answerData, sudoku) : solveSudokuGame(answerData, webSudoku)
         } else {
-            getCanvasData(".game", window.location.href.includes("sudoku.com") ? "mousedown" : "click");
+            getCanvasData(".game", window.location.href.includes("https://sudoku.com/") ? "mousedown" : "click");
         }
      
         sendResponse({ status: "success", message: "Answer data received successfully!" });
@@ -162,7 +162,6 @@ async function solveSudokuGame(sudoku_board, selectorType) {
 
     // Solve the Sudoku
     solveS(sudoku_board, 0, 0);
-    // console.log(sudoku_board)
     // Fill the board
     for (let row = 0; row < 9; row++) {
         for (let col = 0; col < 9; col++) {
@@ -182,11 +181,11 @@ async function solveSudokuGame(sudoku_board, selectorType) {
                     selectorType.insertValue(cell, answer)
                 }
             }
-            await new Promise(resolve => setTimeout(resolve, 1)); 
+            await new Promise(resolve => setTimeout(resolve, 2)); 
             if (!selectorType.insertValue) {
                 selectNumber(answer, selectorType);
             }
-            await new Promise(resolve => setTimeout(resolve, 1)); 
+            await new Promise(resolve => setTimeout(resolve, 2)); 
         }
     }
 }
