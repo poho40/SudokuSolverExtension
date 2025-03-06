@@ -31,7 +31,6 @@ function canvasHelper(canvas, mode) {
         }
     }
     chrome.runtime.sendMessage({ action: "sendCanvasData", imageData: imageData, height: canvas.height, width: canvas.width}, response => {
-        console.log(response)
     });
 }
 
