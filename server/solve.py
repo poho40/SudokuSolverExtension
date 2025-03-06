@@ -34,7 +34,7 @@ def process(pixels, height, width):
 
     # print("hello")
     # Save or display the processed image to check
-    cv2.imwrite("black_digits.png", binary)
+    # cv2.imwrite("black_digits.png", binary)
 
     # 2. Identify the cell boundaries (assuming each cell is of equal size)
     cell_width = binary.shape[1] // 9 
@@ -59,7 +59,7 @@ def process(pixels, height, width):
             # Extract the cell image from the grid
             cell_image = binary[y1:y2, x1:x2]
 
-            cv2.imwrite(f"sudoku_{row}_{col}.png", cell_image)
+            # cv2.imwrite(f"sudoku_{row}_{col}.png", cell_image)
 
             # Extract text (digit) from the processed cell
      

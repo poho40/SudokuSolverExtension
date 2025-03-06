@@ -31,11 +31,15 @@ function canvasHelper(canvas, mode) {
         }
     }
     chrome.runtime.sendMessage({ action: "sendCanvasData", imageData: imageData, height: canvas.height, width: canvas.width}, response => {
+        console.log(response)
     });
 }
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.action === "sudoku") {
+    if (message.action == "solveSudoku") {
+        runfunction()
+    }
+    else if (message.action === "sudoku") {
         const answerData = message.answerData;
 
         // Process the answerData if necessary or perform further actions
@@ -194,8 +198,7 @@ async function solveGenericSudoku(selectorType) {
 }
 
 
-// Main function
-(async function () {
+async function runfunction() {
     if (window.location.href.includes("https://sudoku.com/")) {
         getCanvasData();
     }
@@ -258,7 +261,7 @@ async function solveGenericSudoku(selectorType) {
         };
         solveGenericSudoku(todaySudokuSelector);
     }
-})();
+}
 
 
 function solveS(board, i = 0, j = 0) {

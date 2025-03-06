@@ -40,7 +40,7 @@ async def process_image(data: ImageData):
         # Decode base64 and convert to an image
         image_bytes = base64.b64decode(image_data)
         image = Image.open(io.BytesIO(image_bytes))
-        image.save("received_image.png")  # Save the image for verification
+        # image.save("received_image.png")  # Save the image for verification
         image = image.convert("RGBA")
         pixels = list(image.getdata())
         answer_board = process(pixels,data.height, data.width)
