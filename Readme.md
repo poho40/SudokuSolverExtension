@@ -6,7 +6,7 @@ A Chrome extension that helps users solve Sudoku puzzles by detecting the board,
 
 1. Clone this repository:
    ```sh
-   git clone <repository-url>
+   git clone https://github.com/poho40/SudokuSolverExtension.git
    ```
 2. Open Google Chrome and navigate to `chrome://extensions/`.
 3. Enable **Developer mode** (toggle in the top-right corner).
