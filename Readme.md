@@ -20,9 +20,16 @@ A Chrome extension that helps users solve Sudoku puzzles by detecting the board,
 4. If the website is not supported, a manual input board will be provided. 
 5. Some websites require a local server to function; ensure it is running if needed.
 
+## Demo
+
+Check out the demo here: [Demo Link](https://youtu.be/eTI9i7XLvfg) 
+
+
+
 ## Tested Environment
 
 This extension has been tested on **Google Chrome running on an M2 MacBook Air**.
+
 
 
 
