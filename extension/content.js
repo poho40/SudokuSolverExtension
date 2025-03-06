@@ -1,41 +1,42 @@
-function getCanvasData() {
-    let gameTable = document.querySelector('.game');
-    if (gameTable) {
-        let canvas = gameTable.querySelector("canvas");
-        let imageData = canvas.toDataURL("image/png"); // Convert to base64 PNG
-        const numpadDiv = document.querySelector('#numpad');
-        // Send the image data to the background script
-        if (canvas) {
+function getCanvasData(selector = ".game", eventType = "mousedown") {
+    let gameTable = document.querySelector(selector);
+    let canvas = gameTable ? gameTable.querySelector("canvas") : document.querySelector("canvas");
 
-            // Add event listener for the click event (on canvas)
-            if (!canvas.hasListener) { 
-                canvas.addEventListener("mousedown", (e) => {
-                    // console.log('Canvas clicked at:', e.clientX, e.clientY);
-                });
-                canvas.hasListener = true; // Custom flag to prevent re-adding listeners
-            }
-            for (let numpad of numpadDiv.children) {
-                if (!numpad.hasListener) {
-                    // console.log("adding numpad listner")
-                    numpad.addEventListener("mousedown", (e) => {
-                        // console.log(e.target)
-                        // const value = e.target.getAttribute("data-value"); // Get the value from the data-value attribute
-                        // console.log("mouseup event received on: ", value); 
-                        
-                    });
-                    numpad.hasListener = true
-                }
-            }
-        }
-        chrome.runtime.sendMessage({ action: "sendCanvasData", imageData: imageData, height:2000, width: 2000}, response => {
-            console.log("Response from background:", response);
-        });
+    if (canvas) {
+        canvasHelper(canvas, eventType);
+        attachNumpadListeners();
     }
 }
+
+function attachNumpadListeners() {
+    const numpadDiv = document.querySelector('#numpad');
+    if (!numpadDiv) return;
+
+    for (let numpad of numpadDiv.children) {
+        if (!numpad.hasListener) {
+            numpad.addEventListener("mousedown", (e) => {});
+            numpad.hasListener = true;
+        }
+    }
+}
+
+function canvasHelper(canvas, mode) {
+    if (!canvas) return;
+    let imageData = canvas.toDataURL("image/png"); 
+    if (canvas) {
+        if (!canvas.hasListener) { 
+            canvas.addEventListener(mode, (e) => {
+            });
+            canvas.hasListener = true; 
+        }
+    }
+    chrome.runtime.sendMessage({ action: "sendCanvasData", imageData: imageData, height: canvas.height, width: canvas.width}, response => {
+    });
+}
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === "sudoku") {
         const answerData = message.answerData;
-        // console.log("Received Sudoku answer data:", answerData);
 
         // Process the answerData if necessary or perform further actions
         runSolve = false
@@ -47,326 +48,215 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             }
         }
         if (runSolve) {
-            if (window.location.href.includes("sudoku.com")) {
-                solveSudoku(answerData)
-            }
-            else {
-                solveSudokuGame(answerData)
-            }
+            const webSudoku = {
+                clickEvent: "click",
+                method: "click",
+                selector: ".sudokuInputBar",
+                cellSelector: null,
+                insertValue: null,
+                numpadPress: (numpad, answer) => {
+                    numpad.children[answer - 1].children[0].click()
+                },
+                canvasSelector: () => {
+                    return document.querySelector("canvas")
+                },
+                getValue: null
+            };
+            const sudoku = {
+                clickEvent: "mousedown",
+                method: "dispatchEvent",
+                selector: (answer) => { return document.querySelector(`.numpad-item[data-value="${answer}"]`)},
+                cellSelector: null,
+                insertValue: null,
+                numpadPress: (numpad, answer) => {
+                    numpad.children[answer - 1].children[0].click()
+                },
+                canvasSelector: () => {
+                    let gameTable = document.querySelector('.game')
+                    return gameTable.querySelector("canvas")
+                },
+                getValue: null
+            };
+            window.location.href.includes("sudoku.com") ?  solveSudokuGame(answerData, sudoku) : solveSudokuGame(answerData, webSudoku)
+        } else {
+            getCanvasData(".game", window.location.href.includes("sudoku.com") ? "mousedown" : "click");
         }
-        else {
-            if (window.location.href.includes("sudoku.com")) {
-                getCanvasData();
-            }
-            else {
-                getCanvasDataGame();
-            }
-        }
-        // Send a response back to content.js
+     
         sendResponse({ status: "success", message: "Answer data received successfully!" });
         chrome.runtime.onMessage.removeListener();
     }
     return true
 });
 
+function clickCanvas(canvas, row, col, mode) {
+    let canvas_rect = canvas.getBoundingClientRect();
+        
+    let cell_res = Math.floor(canvas_rect.width / 9); 
+    let cell_he = Math.floor(canvas_rect.height / 9); 
+    x = (2*col+1)/2*cell_he
+    y = (2*row+1)/2*cell_res
 
-async function solveSudoku(sudoku_board) {
-    // console.log("running solve")
-    solveS(sudoku_board, 0, 0)
+    let offsetX = canvas_rect.x + x;
+    let offsetY = canvas_rect.y + y;
+
+    let clickEvent = new MouseEvent(mode, {
+        clientX: offsetX,
+        clientY: offsetY,
+        buttons: 1
+    });
+
+    canvas.dispatchEvent(clickEvent);
+}
+
+function getSudokuData(selectorType) {
+    let grid = [];
     for (let row = 0; row < 9; row++) {
+        let rowData = [];
         for (let col = 0; col < 9; col++) {
-            // Get the canvas element
-            let gameTable = document.querySelector('.game');
-            let canvas = gameTable.querySelector("canvas");
-        
-            // Get the canvas bounding rectangle (position and size)
-            let canvas_rect = canvas.getBoundingClientRect();
-        
-            // Calculate the cell resolution and height
-            let cell_res = Math.floor(canvas_rect.width / 9); // Width of each cell
-            let cell_he = Math.floor(canvas_rect.height / 9); // Height of each cell
-            x = (2*col+1)/2*cell_he
-            y = (2*row+1)/2*cell_res
-
-            // Get the corresponding answer from the Sudoku board
-            let answer = sudoku_board[row][col];
-
-            // Calculate the position to click within the canvas (relative to the canvas)
-            let offsetX = canvas_rect.x + x;
-            let offsetY = canvas_rect.y + y;
-            // console.log(answer)
-            const numberButton = document.querySelector(`.numpad-item[data-value="${answer}"]`);
-
-            // Simulate a mouse click at the calculated position on the canvas
-            let clickEvent = new MouseEvent("mousedown", {
-                clientX: offsetX,
-                clientY: offsetY,
-                buttons: 1
-            });
-
-            // Dispatch the click event on the canvas
-            canvas.dispatchEvent(clickEvent);
-
-            if (numberButton) {
-                const mouseUpEvent = new MouseEvent('mousedown', {
-                    clientX: numberButton.getBoundingClientRect().left,
-                    clientY: numberButton.getBoundingClientRect().top,
-                    bubbles: true,
-                    cancelable: true,
-                    view: window,
-                });
-                // console.log("sent: " + mouseUpEvent);
-                numberButton.dispatchEvent(mouseUpEvent);
+            let cell = document.querySelector(selectorType.cellSelector(row, col));
+            if (cell) {
+                let value = selectorType.getValue(cell);
+                rowData.push(value ? value : '.');
+            } else {
+                rowData.push('.');
             }
+        }
+        grid.push(rowData);
+    }
+    return grid;
+}
 
-
-            // Wait for a short time to simulate human interaction
-            // await new Promise(resolve => setTimeout(resolve, 500)); // 0.5 second delay
+function selectNumber(answer, selectorType) {
+    if (selectorType.method === "click") {
+        let numpadButton = document.querySelector(selectorType.selector);
+        selectorType.numpadPress(numpadButton, answer)
+    } else if (selectorType.method === "dispatchEvent") {
+        let numberButton = selectorType.selector(answer);
+        if (numberButton) {
+            let mouseEvent = new MouseEvent(selectorType.clickEvent, {
+                clientX: numberButton.getBoundingClientRect().left,
+                clientY: numberButton.getBoundingClientRect().top,
+                bubbles: true,
+                cancelable: true,
+                view: window,
+            });
+            numberButton.dispatchEvent(mouseEvent);
         }
     }
 }
 
-async function solveSudokuGame(sudoku_board) {
-    // console.log("running solve")
-    skip_indices = []
+async function solveSudokuGame(sudoku_board, selectorType) {
+    let skipIndices = [];
+
+    // Identify prefilled cells to skip
     for (let row = 0; row < 9; row++) {
         for (let col = 0; col < 9; col++) {
-            if (sudoku_board[row][col] != '.') {
-                skip_indices.push([row,col])
+            if (sudoku_board[row][col] !== '.') {
+                skipIndices.push([row, col]);
             }
         }
     }
-    solveS(sudoku_board, 0, 0)
+
+    // Solve the Sudoku
+    solveS(sudoku_board, 0, 0);
     // console.log(sudoku_board)
+    // Fill the board
     for (let row = 0; row < 9; row++) {
         for (let col = 0; col < 9; col++) {
-            // Get the canvas element
-            if (skip_indices.some(([r, c]) => r === row && c === col)) {
-                // print([row,col])
+            if (skipIndices.some(([r, c]) => r === row && c === col)) {
                 continue;
             }
-            let canvas = document.querySelector("canvas");
-            // console.log(canvas)
-        
-            // Get the canvas bounding rectangle (position and size)
-            let canvas_rect = canvas.getBoundingClientRect();
-        
-            // Calculate the cell resolution and height
-            let cell_res = Math.floor(canvas_rect.width / 9); // Width of each cell
-            let cell_he = Math.floor(canvas_rect.height / 9); // Height of each cell
-            x = (2*col+1)/2*cell_he
-            y = (2*row+1)/2*cell_res
-
-            // Get the corresponding answer from the Sudoku board
             let answer = sudoku_board[row][col];
-
-            // Calculate the position to click within the canvas (relative to the canvas)
-            let offsetX = canvas_rect.x + x;
-            let offsetY = canvas_rect.y + y;
-            // console.log(answer)
-            const numberButton = document.querySelector(`.sudokuInputBar`);
-            // console.log(numberButton.children[answer - 1])
-            // Simulate a mouse click at the calculated position on the canvas
-            let clickEvent = new MouseEvent("click", {
-                clientX: offsetX,
-                clientY: offsetY,
-                buttons: 1
-            });
-
-            // Dispatch the click event on the canvas
-            canvas.dispatchEvent(clickEvent);
-            numberButton.children[answer - 1].click()
-            // Wait for a short time to simulate human interaction
-            // await new Promise(resolve => setTimeout(resolve, 500)); // 0.5 second delay
+            if (selectorType.canvasSelector) {
+                clickCanvas(selectorType.canvasSelector(), row, col, selectorType.clickEvent);
+            }
+            else {
+                let cell = document.querySelector(selectorType.cellSelector(row, col));
+                if (cell) {
+                    cell.click()
+                }
+                if (selectorType.insertValue) {
+                    selectorType.insertValue(cell, answer)
+                }
+            }
+            await new Promise(resolve => setTimeout(resolve, 1)); 
+            if (!selectorType.insertValue) {
+                selectNumber(answer, selectorType);
+            }
+            await new Promise(resolve => setTimeout(resolve, 1)); 
         }
     }
 }
 
-function getData() {
-    let grid = [];
-    for (let row = 0; row < 9; row++) {
-        let rowData = [];
-        for (let col = 0; col < 9; col++) {
-            let td = document.querySelector("#c" + col + row); // Select td
-            if (td) {
-                let input = td.querySelector("input"); // Select input inside td
-                if (input && input.hasAttribute("readonly")) {
-                    rowData.push(input.value); // Store readonly value
-                } else {
-                    rowData.push('.'); // Store '.' if no readonly value
-                }
-            } else {
-                rowData.push('.'); // Handle missing td (edge case)
-            }
-        }
-        grid.push(rowData);
-    }
-    solveS(grid, 0, 0)
-    for (let row = 0; row < 9; row++) {
-        for (let col = 0; col < 9; col++) {
-            let td = document.querySelector("#c" + col + row); // Select td
-            if (td) {
-                let input = td.querySelector("input"); // Select input inside td
-                if(input) {
-                    input.value = grid[row][col]
-                }
-            }
-        }
-    }
-    
+async function solveGenericSudoku(selectorType) {
+    let sudoku_board = getSudokuData(selectorType);
+    await solveSudokuGame(sudoku_board, selectorType);
 }
 
-function getNYData() {
-    const numpadDiv = document.querySelector('.su-keyboard__container');
-    // console.log(numpadDiv)
-    let grid = [];
-    for (let row = 0; row < 9; row++) {
-        let rowData = [];
-        for (let col = 0; col < 9; col++) {
-            let cell = document.querySelector(`[data-testid="sudoku-cell-${row*9+col}"]`); // Select td
-            // console.log(cell)
-            if (cell) {
-                let svg = cell.querySelector('[data-number]');
-                if (svg) {
-                    rowData.push(svg.getAttribute('data-number'));
-                }
-                else {
-                    rowData.push('.'); // Store '.' if no readonly value
-                }
-            } else {
-                rowData.push('.'); // Handle missing td (edge case)
-            }
-        }
-        grid.push(rowData);
-    }
-    // console.log(grid)
-    solveS(grid, 0, 0)
-    // console.log(grid)
-    for (let row = 0; row < 9; row++) {
-        for (let col = 0; col < 9; col++) {
-            let cell = document.querySelector(`[data-testid="sudoku-cell-${row*9+col}"]`);// Select td
-            if (cell) {
-                cell.classList.remove('selected');
-                cell.classList.remove('guessed');
-            }
-        }
-    }
-    for (let row = 0; row < 9; row++) {
-        for (let col = 0; col < 9; col++) {
-            let cell = document.querySelector(`[data-testid="sudoku-cell-${row*9+col}"]`);// Select td
-            if (cell && !cell.classList.contains('prefilled')) {
-
-                cell.click()
-
-                let answer = grid[row][col]
-                numpadDiv.children[answer - 1].click()
-
-                console.log(cell.classList, row, col)
-            }
-        }
-    }
-}
-
-async function getTodayData() {
-    let grid = [];
-    // console.log("started")
-    for (let row = 0; row < 9; row++) {
-        let rowData = [];
-        for (let col = 0; col < 9; col++) {
-            let cell = document.querySelector(`[data-id="${row+1}-${col+1}"]`); // Select td
-            // console.log(cell)
-            // console.log(cell)
-            if (cell) {
-                let span = cell.children[0];
-                if (span) {
-                    if (span.textContent == '') {
-                        rowData.push('.');
-                    }
-                    else {
-                        rowData.push(span.textContent);
-                    }
-                }
-                else {
-                    rowData.push('.'); // Store '.' if no readonly value
-                }
-            } else {
-                rowData.push('.'); // Handle missing td (edge case)
-            }
-        }
-        grid.push(rowData);
-    }
-    // console.log(grid)
-    solveS(grid, 0, 0)
-    console.log(grid)
-    let numpad = document.querySelector('.class-7b-jXCw')
-    for (let row = 0; row < 9; row++) {
-        for (let col = 0; col < 9; col++) {
-            let cell = document.querySelector(`[data-id="${row+1}-${col+1}"]`);
-            // console.log(cell)
-            if (cell && cell.children[0].textContent == '') {
-                console.log(row, col)
-                cell.click()
-                await new Promise(resolve => setTimeout(resolve, 1)); 
-                let answer = grid[row][col]
-                console.log(numpad.children[answer - 1])
-                numpad.children[answer - 1].children[0].click()
-                await new Promise(resolve => setTimeout(resolve, 1)); 
-                // console.log(cell.classList, row, col)
-            }
-        }
-    }
-}
-
-function getCanvasDataGame() {
-
-    let canvas = document.querySelector("canvas");
-    // console.log(canvas)
-    let imageData = canvas.toDataURL("image/png"); // Convert to base64 PNG
-    // const numpadDiv = document.querySelector('#numpad');
-    // Send the image data to the background script
-    if (canvas) {
-
-        // Add event listener for the click event (on canvas)
-        if (!canvas.hasListener) { 
-            canvas.addEventListener("click", (e) => {
-                // console.log('Canvas clicked at:', e.clientX, e.clientY);
-            });
-            canvas.hasListener = true; // Custom flag to prevent re-adding listeners
-        }
-        // for (let numpad of numpadDiv.children) {
-        //     if (!numpad.hasListener) {
-        //         // console.log("adding numpad listner")
-        //         numpad.addEventListener("mousedown", (e) => {
-        //             // console.log(e.target)
-        //             // const value = e.target.getAttribute("data-value"); // Get the value from the data-value attribute
-        //             // console.log("mouseup event received on: ", value); 
-                    
-        //         });
-        //         numpad.hasListener = true
-        //     }
-        // }
-    }
-    chrome.runtime.sendMessage({ action: "sendCanvasData", imageData: imageData, height: canvas.height, width: canvas.width}, response => {
-        console.log("Response from background:", response);
-    });
-}
 
 // Main function
 (async function () {
-    if (window.location.href.includes("sudoku.com")) {
+    if (window.location.href.includes("https://sudoku.com/")) {
         getCanvasData();
     }
-    if (window.location.href.includes("west.websudoku.com")) {
-        getData();
+    else if (window.location.href.includes("https://sudoku.game/")) {
+        getCanvasData(".game", "click");
     }
-    if (window.location.href.includes("www.nytimes.com/puzzles/sudoku")) {
-        getNYData();
+    else if (window.location.href.includes("https://west.websudoku.com/")) {
+        const classicSudokuSelector = {
+            clickEvent: "click",
+            method: "click",
+            selector: null,
+            cellSelector: (row, col) => `#c${col}${row}`,
+            insertValue: (cell, answer) => {
+                if (cell) {
+                    let input = cell.querySelector("input");
+                    if (input) {
+                        input.value = answer
+                    }
+                }
+            },
+            numpadPress: null,
+            getValue: (cell) => {
+                let input = cell.querySelector("input");
+                return input && input.hasAttribute("readonly") ? input.value : null;
+            }
+        };
+        solveGenericSudoku(classicSudokuSelector);
     }
-    if (window.location.href.includes("puzzles.usatoday.com/sudoku/game")) {
-        getTodayData();
+    else if (window.location.href.includes("www.nytimes.com/puzzles/sudoku")) {
+        const nySudokuSelector = {
+            clickEvent: "click",
+            method: "click",
+            selector: ".su-keyboard__container",
+            cellSelector: (row, col) => `[data-testid="sudoku-cell-${row * 9 + col}"]`,
+            insertValue: null,
+            numpadPress: (numpad, answer) => {
+                numpad.children[answer - 1].click()
+            },
+            getValue: (cell) => {
+                let svg = cell.querySelector('[data-number]');
+                return svg ? svg.getAttribute('data-number') : null;
+            }
+        };
+        solveGenericSudoku(nySudokuSelector);
     }
-    if (window.location.href.includes("https://sudoku.game/")) {
-        getCanvasDataGame();
+    else if (window.location.href.includes("puzzles.usatoday.com/sudoku/game")) {
+        const todaySudokuSelector = {
+            clickEvent: "click",
+            method: "click",
+            selector: ".class-7b-jXCw",
+            cellSelector: (row, col) => `[data-id="${row + 1}-${col + 1}"]`,
+            insertValue: null,
+            numpadPress: (numpad, answer) => {
+                numpad.children[answer - 1].children[0].click()
+            },
+            getValue: (cell) => {
+                let span = cell.children[0];
+                return span && span.textContent ? span.textContent : null;
+            }
+        };
+        solveGenericSudoku(todaySudokuSelector);
     }
 })();
 
@@ -421,4 +311,3 @@ function helper(board, r, c, val) {
     }
     return true;
 }
-

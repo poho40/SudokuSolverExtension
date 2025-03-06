@@ -44,7 +44,6 @@ async def process_image(data: ImageData):
         image = image.convert("RGBA")
         pixels = list(image.getdata())
         answer_board = process(pixels,data.height, data.width)
-
         return {"status": "success", "answer": json.dumps(answer_board.tolist())}
 
     except Exception as e:
