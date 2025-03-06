@@ -26,9 +26,7 @@ reader = easyocr.Reader(['en'])
 # for digit in range(1,10):
 #     template = cv2.imread(f'reference_digits/{digit}.png', cv2.IMREAD_GRAYSCALE)
 #     digit_templates[digit] = template
-def process(pixels):
-    width = 2000
-    height = 2000
+def process(pixels, height, width):
     pixels_array = np.array(pixels).reshape((height, width, 4))  # RGBA format
     pixels_array = pixels_array.astype(np.uint8)
     # print(pixels_array.shape)
@@ -36,7 +34,7 @@ def process(pixels):
 
     # print("hello")
     # Save or display the processed image to check
-    # cv2.imwrite("black_digits.png", binary)
+    cv2.imwrite("black_digits.png", binary)
 
     # 2. Identify the cell boundaries (assuming each cell is of equal size)
     cell_width = binary.shape[1] // 9 
@@ -45,7 +43,7 @@ def process(pixels):
     # pixels now contains the RGBA values (each value is a byte: 0-255 range)
     # Example: Accessing the first pixel's RGBA values
     cell_offset_x = 10 # Fine-tune this based on the misalignment
-    cell_offset_y = 10  # Fine-tune this as well
+    cell_offset_y = 10 # Fine-tune this as well
 
     # Loop through each cell in the 9x9 grid
     cells = []
@@ -61,7 +59,7 @@ def process(pixels):
             # Extract the cell image from the grid
             cell_image = binary[y1:y2, x1:x2]
 
-            # cv2.imwrite(f"sudoku_{row}_{col}.png", cell_image)
+            cv2.imwrite(f"sudoku_{row}_{col}.png", cell_image)
 
             # Extract text (digit) from the processed cell
      
@@ -75,7 +73,12 @@ def process(pixels):
                 else:
                     cells.append(result[0]) 
             else:
-                cells.append('.')
+                digit = pytesseract.image_to_string(cell_image, config="--oem 3 --psm 10 -c tessedit_char_whitelist=123456789")
+                if (digit.strip() == '7'):
+                    cells.append(digit.strip())
+                else:
+                    cells.append('.')
+
 
 
     # Reshape the list to match a 9x9 Sudoku board
