@@ -18,7 +18,11 @@ A Chrome extension that helps users solve Sudoku puzzles by detecting the board,
 2. Click the extension icon to open the popup.
 3. If the website is supported, a **Solve Sudoku** button will appear.
 4. If the website is not supported, a manual input board will be provided. 
-5. Some websites require a local server to function; ensure it is running if needed.
+5. Some websites require a local server to function.
+Run the following command to start the server:
+```sh
+uvicorn app:app --reload
+```
 
 ## Demo
 
